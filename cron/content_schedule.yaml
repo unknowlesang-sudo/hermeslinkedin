@@ -1,4 +1,4 @@
-<pre><code class="yaml language-yaml"># =============================================================================
+# =============================================================================
 # cron/content_schedule.yaml
 # Tâche cron Hermes — Publication de contenu LinkedIn B2B
 # Schedule : Mardi à 8h00 (heure locale)
@@ -7,7 +7,7 @@
 
 # Métadonnées de la tâche
 name: "Publication Contenu LinkedIn B2B"
-description: &gt;
+description: >
   Génère et publie automatiquement un post LinkedIn B2B chaque mardi matin.
   Contenu expert sur la prospection commerciale, l'automatisation et la croissance B2B.
   Objectif : renforcer la crédibilité et attirer des prospects inbound.
@@ -75,85 +75,3 @@ prompt: |
 
   ### Exemple de structure
  
-</code></pre>
-
-<p>[Accroche percutante]</p>
-
-<p>[Point 1]<br />
-  [Point 2]<br />
-  [Point 3]<br />
-  &#8230;</p>
-
-<p>[Conclusion + insight clé]</p>
-
-<p>[Question pour engager]</p>
-
-<p>#ProspectionB2B #LinkedIn #Automatisation #Commercial #PME<br />
-  ```</p>
-
-<p>## Workflow d&#8217;exécution</p>
-
-<p>### Étape 1 — Analyse du contexte actuel<br />
-  Détermine quelle semaine du mois nous sommes (1, 2, 3, 4 ou 5).<br />
-  Sélectionne le thème correspondant dans la rotation ci-dessus.<br />
-  Adapte le contenu aux actualités B2B récentes si pertinent.</p>
-
-<p>### Étape 2 — Génération du post<br />
-  Rédige le post LinkedIn complet selon le format défini.<br />
-  Assure-toi que le contenu est :</p>
-
-<ul>
-<li>Original et non générique</li>
-<li>Basé sur des insights concrets et actionnables</li>
-<li>Aligné avec l&#8217;offre (Département Autonome de Prospection)</li>
-<li>Engageant pour la cible (directeurs commerciaux, CEO PME B2B)</li>
-</ul>
-
-<p>### Étape 3 — Validation interne<br />
-  Vérifie que le post respecte :<br />
-  ✅ Longueur : 800-1500 caractères<br />
-  ✅ Pas de liens externes<br />
-  ✅ 3-5 hashtags pertinents<br />
-  ✅ Question finale pour l&#8217;engagement<br />
-  ✅ Ton professionnel et authentique<br />
-  ✅ Pas de pitch commercial direct</p>
-
-<p>### Étape 4 — Publication<br />
-  Appelle <code>publish_post</code> avec :</p>
-
-<ul>
-<li>text: le post généré et validé</li>
-<li>visibility: &#8220;PUBLIC&#8221;</li>
-</ul>
-
-<p>En cas d&#8217;erreur de publication :</p>
-
-<ul>
-<li>Retry une fois après 30 secondes</li>
-<li>Si échec persistant : envoyer le post via Telegram pour publication manuelle</li>
-</ul>
-
-<p>### Étape 5 — Rapport Telegram<br />
-  Envoie une confirmation :</p>
-
-<p>✍️ Post LinkedIn publié — {date_du_jour}</p>
-
-<p>📝 Thème : {thème_choisi}
-  📏 Longueur : {n} caractères
-  🔗 URL du post : {post_url}</p>
-
-<p>📊 Aperçu :<br />
-  &#8220;{premiers_150_caractères_du_post}&#8230;&#8221;</p>
-
-<p>💡 Conseil : Engagez avec les premiers commentaires dans l&#8217;heure<br />
-  pour maximiser le reach LinkedIn.</p>
-
-<p>## Règles de sécurité</p>
-
-<ul>
-<li>Ne publier qu&#8217;une seule fois par exécution (vérifier avant de publier)</li>
-<li>En cas de doute sur le contenu, envoyer pour validation Telegram avant publication</li>
-<li>Ne jamais publier de contenu offensant, politique ou controversé</li>
-<li>Respecter les CGU LinkedIn (pas de spam, pas de contenu trompeur)<br />
-```</li>
-</ul>

@@ -1,4 +1,4 @@
-<pre><code class="bash language-bash">#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # gmaps_scraper.sh — Scraping d'entreprises via API Overpass (OpenStreetMap)
 # API : https://overpass-api.de/api/interpreter (gratuite, sans clé)
@@ -25,11 +25,11 @@ mkdir -p "$LOG_DIR"
 log() {
   local level="$1"
   shift
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" &gt;&amp;2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" >&2
 }
 
 usage() {
-  cat &lt;&lt;EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Scrape des entreprises via l'API Overpass (OpenStreetMap).
@@ -82,13 +82,13 @@ resolve_city_coordinates() {
 
   local response
   response=$(curl -s \
-    "https://nominatim.openstreetmap.org/search?q=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$city'))" 2&gt;/dev/null || echo "$city" | sed 's/ /+/g')&amp;format=json&amp;limit=1" \
+    "https://nominatim.openstreetmap.org/search?q=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$city'))" 2>/dev/null || echo "$city" | sed 's/ /+/g')&format=json&limit=1" \
     -H "User-Agent: hermes-business-agents/1.0" \
-    --max-time 15 2&gt;&amp;1)
+    --max-time 15 2>&1)
 
   local lat lon
-  lat=$(echo "$response" | jq -r '.[0].lat // ""' 2&gt;/dev/null || echo "")
-  lon=$(echo "$response" | jq -r '.[0].lon // ""' 2&gt;/dev/null || echo "")
+  lat=$(echo "$response" | jq -r '.[0].lat // ""' 2>/dev/null || echo "")
+  lon=$(echo "$response" | jq -r '.[0].lon // ""' 2>/dev/null || echo "")
 
   if [[ -z "$lat" || -z "$lon" ]]; then
     log "ERROR" "Impossible de résoudre les coordonnées pour : $city"
@@ -100,13 +100,13 @@ resolve_city_coordinates() {
   # Calculer la bounding box approximative
   # 1 degré ≈ 111km → radius_deg = radius_m / 111000
   local radius_deg
-  radius_deg=$(python3 -c "print(round($radius / 111000, 4))" 2&gt;/dev/null || echo "0.045")
+  radius_deg=$(python3 -c "print(round($radius / 111000, 4))" 2>/dev/null || echo "0.045")
 
   local south north west east
-  south=$(python3 -c "print(round($lat - $radius_deg, 6))" 2&gt;/dev/null || echo "$(echo "$lat - $radius_deg" | bc -l)")
-  north=$(python3 -c "print(round($lat + $radius_deg, 6))" 2&gt;/dev/null || echo "$(echo "$lat + $radius_deg" | bc -l)")
-  west=$(python3 -c "print(round($lon - $radius_deg, 6))" 2&gt;/dev/null || echo "$(echo "$lon - $radius_deg" | bc -l)")
-  east=$(python3 -c "print(round($lon + $radius_deg, 6))" 2&gt;/dev/null || echo "$(echo "$lon + $radius_deg" | bc -l)")
+  south=$(python3 -c "print(round($lat - $radius_deg, 6))" 2>/dev/null || echo "$(echo "$lat - $radius_deg" | bc -l)")
+  north=$(python3 -c "print(round($lat + $radius_deg, 6))" 2>/dev/null || echo "$(echo "$lat + $radius_deg" | bc -l)")
+  west=$(python3 -c "print(round($lon - $radius_deg, 6))" 2>/dev/null || echo "$(echo "$lon - $radius_deg" | bc -l)")
+  east=$(python3 -c "print(round($lon + $radius_deg, 6))" 2>/dev/null || echo "$(echo "$lon + $radius_deg" | bc -l)")
 
   echo "${south},${west},${north},${east}"
 }
@@ -122,7 +122,7 @@ build_overpass_query() {
   local timeout="$OVERPASS_TIMEOUT"
 
   # Requête Overpass QL pour nodes et ways avec le tag spécifié
-  cat &lt;&lt;EOF
+  cat <<EOF
 [out:json][timeout:${timeout}][maxsize:10000000];
 (
   node["${tag_key}"="${tag_value}"](${bbox});
@@ -143,7 +143,7 @@ call_overpass_api() {
 
   while [[ $attempt -lt $MAX_RETRIES ]]; do
     attempt=$(( attempt + 1 ))
-    [[ $attempt -gt 1 ]] &amp;&amp; sleep $(( REQUEST_DELAY * attempt ))
+    [[ $attempt -gt 1 ]] && sleep $(( REQUEST_DELAY * attempt ))
 
     log "INFO" "Tentative $attempt/$MAX_RETRIES — appel Overpass API..."
 
@@ -153,7 +153,7 @@ call_overpass_api() {
       -H "User-Agent: hermes-business-agents/1.0 (contact: admin@example.com)" \
       --data-urlencode "data=$query" \
       --max-time $(( OVERPASS_TIMEOUT + 10 )) \
-      "$OVERPASS_API" 2&gt;&amp;1)
+      "$OVERPASS_API" 2>&1)
 
     http_code=$(echo "$response" | tail -n1)
     response=$(echo "$response" | head -n -1)
@@ -191,13 +191,13 @@ parse_overpass_response() {
   local city="$2"
   local category="$3"
 
-  if ! echo "$response" | jq empty 2&gt;/dev/null; then
+  if ! echo "$response" | jq empty 2>/dev/null; then
     log "ERROR" "Réponse Overpass non-JSON"
     return 1
   fi
 
   local elements_count
-  elements_count=$(echo "$response" | jq '.elements | length' 2&gt;/dev/null || echo "0")
+  elements_count=$(echo "$response" | jq '.elements | length' 2>/dev/null || echo "0")
   log "INFO" "$elements_count éléments bruts trouvés"
 
   # Normaliser chaque élément
@@ -271,7 +271,7 @@ parse_overpass_response() {
     # Dédupliquer par nom + adresse
     group_by(.nom + .adresse) |
     map(.[0])
-    ' 2&gt;/dev/null || echo "[]")
+    ' 2>/dev/null || echo "[]")
 
   local final_count
   final_count=$(echo "$leads" | jq 'length')
@@ -306,7 +306,7 @@ convert_to_csv() {
     ] |
     map(. // "" | gsub(","; ";") | gsub("\n"; " ")) |
     join(",")
-  ' 2&gt;/dev/null
+  ' 2>/dev/null
 }
 
 # -----------------------------------------------------------------------------
@@ -342,12 +342,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validation
-if [[ -z "$CATEGORY" &amp;&amp; -z "$TAG_KEY" ]]; then
+if [[ -z "$CATEGORY" && -z "$TAG_KEY" ]]; then
   log "ERROR" "--category ou --tag-key est obligatoire"
   exit 1
 fi
 
-if [[ -z "$CITY" &amp;&amp; -z "$BBOX" ]]; then
+if [[ -z "$CITY" && -z "$BBOX" ]]; then
   log "ERROR" "--city ou --bbox est obligatoire"
   exit 1
 fi
@@ -388,12 +388,12 @@ main() {
   log "INFO" "=== gmaps_scraper.sh démarré ==="
   log "INFO" "Recherche : ${TAG_KEY}=${TAG_VALUE} | Ville: ${CITY:-bbox} | Rayon: ${RADIUS}m | Max: $MAX_RESULTS"
 
-  if ! command -v jq &amp;&gt;/dev/null; then
+  if ! command -v jq &>/dev/null; then
     log "ERROR" "jq est requis mais non installé."
     exit 1
   fi
 
-  if ! command -v curl &amp;&gt;/dev/null; then
+  if ! command -v curl &>/dev/null; then
     log "ERROR" "curl est requis mais non installé."
     exit 1
   fi
@@ -469,7 +469,7 @@ main() {
 
   # Sortie
   if [[ -n "$OUTPUT_FILE" ]]; then
-    echo "$output" &gt; "$OUTPUT_FILE"
+    echo "$output" > "$OUTPUT_FILE"
     log "INFO" "Résultats sauvegardés dans : $OUTPUT_FILE"
   else
     echo "$output"
@@ -479,4 +479,3 @@ main() {
 }
 
 main "$@"
-</code></pre>

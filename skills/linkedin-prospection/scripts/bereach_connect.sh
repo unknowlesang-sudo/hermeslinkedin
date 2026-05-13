@@ -1,4 +1,4 @@
-<pre><code class="bash language-bash">#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # bereach_connect.sh — Envoi d'une demande de connexion LinkedIn via BeReach API
 # Endpoint : POST /connect/linkedin/profile
@@ -8,7 +8,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Chargement des variables d'environnement
 # -----------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &amp;&amp; pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../../../.env"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -36,7 +36,7 @@ mkdir -p "$LOG_DIR"
 log() {
   local level="$1"
   shift
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" &gt;&amp;2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" >&2
 }
 
 random_delay() {
@@ -46,7 +46,7 @@ random_delay() {
 }
 
 usage() {
-  cat &lt;&lt;EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Envoie une demande de connexion LinkedIn personnalisée via BeReach API.
@@ -76,17 +76,17 @@ generate_connection_note() {
   local profile_data="$1"
 
   local first_name headline company position
-  first_name=$(echo "$profile_data" | jq -r '.firstName // ""' 2&gt;/dev/null || echo "")
-  headline=$(echo "$profile_data" | jq -r '.headline // ""' 2&gt;/dev/null || echo "")
-  company=$(echo "$profile_data" | jq -r '.company // ""' 2&gt;/dev/null || echo "")
-  position=$(echo "$profile_data" | jq -r '.position // ""' 2&gt;/dev/null || echo "")
+  first_name=$(echo "$profile_data" | jq -r '.firstName // ""' 2>/dev/null || echo "")
+  headline=$(echo "$profile_data" | jq -r '.headline // ""' 2>/dev/null || echo "")
+  company=$(echo "$profile_data" | jq -r '.company // ""' 2>/dev/null || echo "")
+  position=$(echo "$profile_data" | jq -r '.position // ""' 2>/dev/null || echo "")
 
   # Construire une note personnalisée selon les données disponibles
   local note=""
 
-  if [[ -n "$first_name" &amp;&amp; -n "$company" ]]; then
+  if [[ -n "$first_name" && -n "$company" ]]; then
     note="Bonjour ${first_name}, votre profil chez ${company} a retenu mon attention."
-  elif [[ -n "$first_name" &amp;&amp; -n "$headline" ]]; then
+  elif [[ -n "$first_name" && -n "$headline" ]]; then
     # Tronquer le headline si trop long
     local short_headline="${headline:0:50}"
     note="Bonjour ${first_name}, votre expertise en ${short_headline} m'intéresse."
@@ -98,7 +98,7 @@ generate_connection_note() {
 
   # Ajouter une phrase de contexte si place disponible
   local offer_desc="${OFFER_DESCRIPTION:-}"
-  if [[ -n "$offer_desc" &amp;&amp; ${#note} -lt 200 ]]; then
+  if [[ -n "$offer_desc" && ${#note} -lt 200 ]]; then
     local remaining=$(( MAX_NOTE_LENGTH - ${#note} - 2 ))
     if [[ $remaining -gt 50 ]]; then
       local short_offer="${offer_desc:0:$remaining}"
@@ -139,7 +139,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validation : au moins un identifiant de profil requis
-if [[ -z "$PROFILE_URL" &amp;&amp; -z "$PROFILE_ID" ]]; then
+if [[ -z "$PROFILE_URL" && -z "$PROFILE_ID" ]]; then
   log "ERROR" "--profile-url ou --profile-id est obligatoire"
   exit 1
 fi
@@ -150,7 +150,7 @@ fi
 main() {
   log "INFO" "=== bereach_connect.sh démarré ==="
 
-  if ! command -v jq &amp;&gt;/dev/null; then
+  if ! command -v jq &>/dev/null; then
     log "ERROR" "jq est requis mais non installé."
     exit 1
   fi
@@ -206,7 +206,7 @@ main() {
 
   while [[ $attempt -le $MAX_RETRIES ]]; do
     attempt=$(( attempt + 1 ))
-    [[ $attempt -gt 1 ]] &amp;&amp; random_delay
+    [[ $attempt -gt 1 ]] && random_delay
 
     log "INFO" "Tentative $attempt/$((MAX_RETRIES + 1)) — envoi demande de connexion..."
 
@@ -217,7 +217,7 @@ main() {
       -H "Accept: application/json" \
       --max-time 30 \
       --data "$request_body" \
-      "${BEREACH_BASE_URL}/connect/linkedin/profile" 2&gt;&amp;1)
+      "${BEREACH_BASE_URL}/connect/linkedin/profile" 2>&1)
 
     http_code=$(echo "$response" | tail -n1)
     response=$(echo "$response" | head -n -1)
@@ -230,8 +230,8 @@ main() {
 
         # Extraire les métriques
         local credits_used retry_after
-        credits_used=$(echo "$response" | jq '.creditsUsed // 0' 2&gt;/dev/null || echo "0")
-        retry_after=$(echo "$response" | jq '.retryAfter // 0' 2&gt;/dev/null || echo "0")
+        credits_used=$(echo "$response" | jq '.creditsUsed // 0' 2>/dev/null || echo "0")
+        retry_after=$(echo "$response" | jq '.retryAfter // 0' 2>/dev/null || echo "0")
 
         log "INFO" "Crédits consommés : $credits_used | retryAfter : ${retry_after}s"
 
@@ -246,7 +246,7 @@ main() {
             _noteSent: $note,
             _sentAt: $ts,
             _action: "connect"
-          }' 2&gt;/dev/null || echo "$response")
+          }' 2>/dev/null || echo "$response")
 
         echo "$enriched_response"
         log "INFO" "=== bereach_connect.sh terminé avec succès ==="
@@ -254,7 +254,7 @@ main() {
         ;;
       429)
         local retry_after
-        retry_after=$(echo "$response" | jq -r '.retryAfter // 60' 2&gt;/dev/null || echo "60")
+        retry_after=$(echo "$response" | jq -r '.retryAfter // 60' 2>/dev/null || echo "60")
         log "WARN" "Rate limit (429) — retryAfter: ${retry_after}s"
         if [[ $attempt -le $MAX_RETRIES ]]; then
           sleep "$retry_after"
@@ -299,4 +299,3 @@ main() {
 }
 
 main "$@"
-</code></pre>

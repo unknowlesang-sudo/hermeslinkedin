@@ -1,4 +1,4 @@
-<pre><code class="python language-python"># =============================================================================
+# =============================================================================
 # tools/bereach_api/bereach_client.py
 # Client Python BeReach API — Production Ready
 # Basé sur apibereach.json (OpenAPI 3.0.3)
@@ -186,7 +186,7 @@ class BereachClient:
         path: str,
         body: Optional[dict] = None,
         params: Optional[dict] = None,
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Effectue une requête HTTP vers l'API BeReach.
         Gère les erreurs, le rate limit et le tracking des crédits.
@@ -194,7 +194,7 @@ class BereachClient:
         self.counter.reset_if_new_day()
 
         # Vérifier le budget de crédits
-        if self.counter.credits_used_total &gt;= self.max_credits_per_run:
+        if self.counter.credits_used_total >= self.max_credits_per_run:
             raise BereachBudgetExceededError(
                 f"Budget de {self.max_credits_per_run} crédits atteint "
                 f"(utilisés: {self.counter.credits_used_total})"
@@ -245,7 +245,7 @@ class BereachClient:
                     status_code=response.status_code,
                     error=error_msg,
                 )
-            elif response.status_code &gt;= 500:
+            elif response.status_code >= 500:
                 # Erreurs serveur — retryables
                 raise httpx.HTTPStatusError(
                     f"Erreur serveur {response.status_code}",
@@ -262,7 +262,7 @@ class BereachClient:
             self.counter.credits_used_total += credits_used
 
             # Respecter le retryAfter même en cas de succès
-            if retry_after &gt; 0:
+            if retry_after > 0:
                 log.info("retryAfter reçu — pause", seconds=retry_after)
                 time.sleep(retry_after)
 
@@ -298,7 +298,7 @@ class BereachClient:
         path: str,
         body: Optional[dict] = None,
         params: Optional[dict] = None,
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Wrapper avec retry automatique pour les erreurs 5xx.
         Backoff exponentiel borné avec jitter.
@@ -341,7 +341,7 @@ class BereachClient:
         connection_degree: Optional[list] = None,
         count: int = 10,
         start: int = 0,
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Recherche des profils LinkedIn selon des critères ICP.
 
@@ -360,7 +360,7 @@ class BereachClient:
             ApiResponse avec items[] de profils LinkedIn
         """
         # Vérifier la limite quotidienne
-        if self.counter.searches_done &gt;= MAX_SEARCHES_PER_DAY:
+        if self.counter.searches_done >= MAX_SEARCHES_PER_DAY:
             raise BereachDailyLimitError(
                 f"Limite quotidienne de recherches atteinte ({MAX_SEARCHES_PER_DAY})"
             )
@@ -409,7 +409,7 @@ class BereachClient:
         self,
         profile_url: str,
         include_about: bool = True,
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Visite et enrichit un profil LinkedIn.
 
@@ -421,7 +421,7 @@ class BereachClient:
             ApiResponse avec données complètes du profil
         """
         # Vérifier la limite quotidienne
-        if self.counter.profiles_visited &gt;= MAX_VISITS_PER_DAY:
+        if self.counter.profiles_visited >= MAX_VISITS_PER_DAY:
             raise BereachDailyLimitError(
                 f"Limite quotidienne de visites atteinte ({MAX_VISITS_PER_DAY})"
             )
@@ -452,7 +452,7 @@ class BereachClient:
         self,
         profile_url: str,
         message: Optional[str] = None,
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Envoie une demande de connexion LinkedIn.
         LIMITE STRICTE : 30 connexions/jour maximum.
@@ -465,14 +465,14 @@ class BereachClient:
             ApiResponse avec confirmation d'envoi
         """
         # Vérifier la limite quotidienne STRICTE
-        if self.counter.connections_sent &gt;= MAX_CONNECTIONS_PER_DAY:
+        if self.counter.connections_sent >= MAX_CONNECTIONS_PER_DAY:
             raise BereachDailyLimitError(
                 f"LIMITE LINKEDIN ATTEINTE : {MAX_CONNECTIONS_PER_DAY} connexions/jour max. "
                 f"Envoyées aujourd'hui : {self.counter.connections_sent}"
             )
 
         # Valider la longueur du message
-        if message and len(message) &gt; 300:
+        if message and len(message) > 300:
             logger.warning("Message de connexion tronqué à 300 caractères",
                           original_length=len(message))
             message = message[:297] + "..."
@@ -504,7 +504,7 @@ class BereachClient:
         self,
         profile_url: str,
         message: str,
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Envoie un message direct LinkedIn.
 
@@ -516,7 +516,7 @@ class BereachClient:
             ApiResponse avec confirmation d'envoi
         """
         # Vérifier la limite quotidienne
-        if self.counter.messages_sent &gt;= MAX_MESSAGES_PER_DAY:
+        if self.counter.messages_sent >= MAX_MESSAGES_PER_DAY:
             raise BereachDailyLimitError(
                 f"Limite quotidienne de messages atteinte ({MAX_MESSAGES_PER_DAY})"
             )
@@ -547,7 +547,7 @@ class BereachClient:
             self._handle_rate_limit(e)
             return self._request_with_retry("POST", "/message/linkedin", body=body)
 
-    def get_connections(self) -&gt; ApiResponse:
+    def get_connections(self) -> ApiResponse:
         """
         Récupère la liste des connexions LinkedIn du compte.
 
@@ -557,7 +557,7 @@ class BereachClient:
         logger.info("Récupération des connexions LinkedIn")
         return self._request_with_retry("GET", "/me/linkedin/connections")
 
-    def get_pending_invitations(self) -&gt; ApiResponse:
+    def get_pending_invitations(self) -> ApiResponse:
         """
         Récupère les invitations LinkedIn reçues en attente.
 
@@ -573,7 +573,7 @@ class BereachClient:
         count: int = 20,
         start: int = 0,
         return_reposts: bool = False,
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Collecte les posts LinkedIn d'un profil.
 
@@ -612,7 +612,7 @@ class BereachClient:
         post_url: str,
         count: int = 50,
         start: int = 0,
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Collecte les commentaires d'un post LinkedIn.
 
@@ -642,7 +642,7 @@ class BereachClient:
             self._handle_rate_limit(e)
             return self._request_with_retry("POST", "/collect/linkedin/comments", body=body)
 
-    def get_credits(self) -&gt; ApiResponse:
+    def get_credits(self) -> ApiResponse:
         """
         Vérifie le solde de crédits BeReach.
 
@@ -656,7 +656,7 @@ class BereachClient:
         self,
         text: str,
         visibility: str = "PUBLIC",
-    ) -&gt; ApiResponse:
+    ) -> ApiResponse:
         """
         Publie un post sur LinkedIn.
 
@@ -692,7 +692,7 @@ class BereachClient:
             self._handle_rate_limit(e)
             return self._request_with_retry("POST", "/publish/linkedin/post", body=body)
 
-    def get_daily_stats(self) -&gt; dict:
+    def get_daily_stats(self) -> dict:
         """
         Retourne les statistiques d'utilisation du jour.
 
@@ -728,4 +728,3 @@ if __name__ == "__main__":
         # Afficher les stats quotidiennes
         stats = client.get_daily_stats()
         print(f"📊 Stats du jour : {stats}")
-</code></pre>

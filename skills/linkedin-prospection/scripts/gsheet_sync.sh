@@ -1,4 +1,4 @@
-<pre><code class="bash language-bash">#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # gsheet_sync.sh — Synchronisation CRM Google Sheets
 # Auth via google_sheets/oauth_setup.py (OAuth2)
@@ -10,7 +10,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Chargement des variables d'environnement
 # -----------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &amp;&amp; pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../../../.env"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -51,11 +51,11 @@ mkdir -p "$LOG_DIR" "$(dirname "$TOKEN_FILE")"
 log() {
   local level="$1"
   shift
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" &gt;&amp;2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" >&2
 }
 
 usage() {
-  cat &lt;&lt;EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Synchronise les données prospects avec le CRM Google Sheets.
@@ -93,14 +93,14 @@ get_access_token() {
   # Vérifier si le token en cache est encore valide
   if [[ -f "$TOKEN_FILE" ]]; then
     local expiry
-    expiry=$(jq -r '.expiry // ""' "$TOKEN_FILE" 2&gt;/dev/null || echo "")
+    expiry=$(jq -r '.expiry // ""' "$TOKEN_FILE" 2>/dev/null || echo "")
     local now
     now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-    if [[ -n "$expiry" &amp;&amp; "$expiry" &gt; "$now" ]]; then
+    if [[ -n "$expiry" && "$expiry" > "$now" ]]; then
       local token
-      token=$(jq -r '.token' "$TOKEN_FILE" 2&gt;/dev/null || echo "")
-      if [[ -n "$token" &amp;&amp; "$token" != "null" ]]; then
+      token=$(jq -r '.token' "$TOKEN_FILE" 2>/dev/null || echo "")
+      if [[ -n "$token" && "$token" != "null" ]]; then
         echo "$token"
         return 0
       fi
@@ -113,7 +113,7 @@ get_access_token() {
     local token
     token=$(python3 "$OAUTH_SCRIPT" --action get-token \
       --credentials "$CREDENTIALS_FILE" \
-      --token-file "$TOKEN_FILE" 2&gt;/dev/null)
+      --token-file "$TOKEN_FILE" 2>/dev/null)
 
     if [[ -n "$token" ]]; then
       echo "$token"
@@ -148,7 +148,7 @@ sheets_api_call() {
       -H "Authorization: Bearer $token" \
       -H "Accept: application/json" \
       --max-time 30 \
-      "${SHEETS_BASE_URL}/${GOOGLE_SHEETS_ID}${endpoint}" 2&gt;&amp;1)
+      "${SHEETS_BASE_URL}/${GOOGLE_SHEETS_ID}${endpoint}" 2>&1)
   else
     response=$(curl -s -w "\n%{http_code}" \
       -X "$method" \
@@ -157,7 +157,7 @@ sheets_api_call() {
       -H "Accept: application/json" \
       --max-time 30 \
       ${body:+--data "$body"} \
-      "${SHEETS_BASE_URL}/${GOOGLE_SHEETS_ID}${endpoint}" 2&gt;&amp;1)
+      "${SHEETS_BASE_URL}/${GOOGLE_SHEETS_ID}${endpoint}" 2>&1)
   fi
 
   local http_code
@@ -188,14 +188,14 @@ read_crm_rows() {
     "$token")
 
   local rows
-  rows=$(echo "$response" | jq '.values // []' 2&gt;/dev/null || echo "[]")
+  rows=$(echo "$response" | jq '.values // []' 2>/dev/null || echo "[]")
 
   # Convertir en objets JSON avec les noms de colonnes
   local prospects
   prospects=$(echo "$rows" | jq '
     .[1:] |  # Ignorer la ligne d'"'"'en-tête
     [.[] |
-      select(length &gt; 0) |
+      select(length > 0) |
       {
         date:        (.[0] // ""),
         nom:         (.[1] // ""),
@@ -207,13 +207,13 @@ read_crm_rows() {
         notes:       (.[7] // "")
       }
     ]
-  ' 2&gt;/dev/null || echo "[]")
+  ' 2>/dev/null || echo "[]")
 
   # Filtrer par statut si demandé
   if [[ -n "$filter_status" ]]; then
     prospects=$(echo "$prospects" | jq \
       --arg status "$filter_status" \
-      '[.[] | select(.statut == $status)]' 2&gt;/dev/null || echo "[]")
+      '[.[] | select(.statut == $status)]' 2>/dev/null || echo "[]")
   fi
 
   echo "$prospects"
@@ -234,7 +234,7 @@ find_prospect_row() {
     "$token")
 
   local rows
-  rows=$(echo "$response" | jq '.values // []' 2&gt;/dev/null || echo "[]")
+  rows=$(echo "$response" | jq '.values // []' 2>/dev/null || echo "[]")
 
   # Normaliser l'URL recherchée
   local normalized_url
@@ -253,7 +253,7 @@ find_prospect_row() {
       ascii_downcase |
       . == $url
     ) |
-    .key + 2' 2&gt;/dev/null | head -1)
+    .key + 2' 2>/dev/null | head -1)
 
   echo "${row_index:--1}"
 }
@@ -268,13 +268,13 @@ upsert_prospect() {
   # Extraire les champs
   local date nom titre entreprise url statut message notes
   date=$(date '+%Y-%m-%d')
-  nom=$(echo "$prospect_data" | jq -r '(.firstName // "") + " " + (.lastName // "") | ltrimstr(" ") | rtrimstr(" ")' 2&gt;/dev/null || echo "")
-  titre=$(echo "$prospect_data" | jq -r '.position // .headline // ""' 2&gt;/dev/null || echo "")
-  entreprise=$(echo "$prospect_data" | jq -r '.company // ""' 2&gt;/dev/null || echo "")
-  url=$(echo "$prospect_data" | jq -r '.profileUrl // .url // ""' 2&gt;/dev/null || echo "")
-  statut=$(echo "$prospect_data" | jq -r '._status // "Connexion envoyée"' 2&gt;/dev/null || echo "Connexion envoyée")
-  message=$(echo "$prospect_data" | jq -r '._messageSent // ""' 2&gt;/dev/null || echo "")
-  notes=$(echo "$prospect_data" | jq -r '._notes // ""' 2&gt;/dev/null || echo "")
+  nom=$(echo "$prospect_data" | jq -r '(.firstName // "") + " " + (.lastName // "") | ltrimstr(" ") | rtrimstr(" ")' 2>/dev/null || echo "")
+  titre=$(echo "$prospect_data" | jq -r '.position // .headline // ""' 2>/dev/null || echo "")
+  entreprise=$(echo "$prospect_data" | jq -r '.company // ""' 2>/dev/null || echo "")
+  url=$(echo "$prospect_data" | jq -r '.profileUrl // .url // ""' 2>/dev/null || echo "")
+  statut=$(echo "$prospect_data" | jq -r '._status // "Connexion envoyée"' 2>/dev/null || echo "Connexion envoyée")
+  message=$(echo "$prospect_data" | jq -r '._messageSent // ""' 2>/dev/null || echo "")
+  notes=$(echo "$prospect_data" | jq -r '._notes // ""' 2>/dev/null || echo "")
 
   if [[ -z "$url" ]]; then
     log "ERROR" "URL LinkedIn manquante dans les données du prospect"
@@ -303,9 +303,9 @@ upsert_prospect() {
     # Ajouter une nouvelle ligne
     log "INFO" "Ajout d'une nouvelle ligne dans le CRM..."
     sheets_api_call "POST" \
-      "/values/${CRM_SHEET_NAME}!A:H:append?valueInputOption=USER_ENTERED&amp;insertDataOption=INSERT_ROWS" \
+      "/values/${CRM_SHEET_NAME}!A:H:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS" \
       "$row_data" \
-      "$token" &gt; /dev/null
+      "$token" > /dev/null
 
     log "INFO" "✅ Prospect ajouté : $nom"
     echo "{\"action\": \"inserted\", \"nom\": \"$nom\", \"url\": \"$url\", \"statut\": \"$statut\"}"
@@ -315,7 +315,7 @@ upsert_prospect() {
     sheets_api_call "PUT" \
       "/values/${CRM_SHEET_NAME}!A${existing_row}:H${existing_row}?valueInputOption=USER_ENTERED" \
       "$row_data" \
-      "$token" &gt; /dev/null
+      "$token" > /dev/null
 
     log "INFO" "✅ Prospect mis à jour : $nom (ligne $existing_row)"
     echo "{\"action\": \"updated\", \"row\": $existing_row, \"nom\": \"$nom\", \"url\": \"$url\", \"statut\": \"$statut\"}"
@@ -331,7 +331,7 @@ update_status() {
   local new_status="$3"
 
   local url
-  url=$(echo "$prospect_data" | jq -r '.url // .profileUrl // ._normalizedUrl // ""' 2&gt;/dev/null || echo "")
+  url=$(echo "$prospect_data" | jq -r '.url // .profileUrl // ._normalizedUrl // ""' 2>/dev/null || echo "")
 
   if [[ -z "$url" ]]; then
     log "ERROR" "URL LinkedIn manquante pour la mise à jour du statut"
@@ -355,7 +355,7 @@ update_status() {
   sheets_api_call "PUT" \
     "/values/${CRM_SHEET_NAME}!F${row}?valueInputOption=USER_ENTERED" \
     "$update_data" \
-    "$token" &gt; /dev/null
+    "$token" > /dev/null
 
   log "INFO" "✅ Statut mis à jour : $url → $new_status"
   echo "{\"action\": \"status_updated\", \"row\": $row, \"url\": \"$url\", \"newStatus\": \"$new_status\"}"
@@ -379,7 +379,7 @@ get_all_urls() {
     [.[] | .[0] // "" | select(. != "") |
       gsub("\\?.*$"; "") | rtrimstr("/") | ascii_downcase
     ] | unique
-  ' 2&gt;/dev/null || echo "[]"
+  ' 2>/dev/null || echo "[]"
 }
 
 # -----------------------------------------------------------------------------
@@ -417,7 +417,7 @@ fi
 main() {
   log "INFO" "=== gsheet_sync.sh démarré (action: $ACTION) ==="
 
-  if ! command -v jq &amp;&gt;/dev/null; then
+  if ! command -v jq &>/dev/null; then
     log "ERROR" "jq est requis mais non installé."
     exit 1
   fi
@@ -464,7 +464,7 @@ main() {
 
   # Sortie
   if [[ -n "$OUTPUT_FILE" ]]; then
-    echo "$result" &gt; "$OUTPUT_FILE"
+    echo "$result" > "$OUTPUT_FILE"
     log "INFO" "Résultat sauvegardé dans : $OUTPUT_FILE"
   else
     echo "$result"
@@ -474,4 +474,3 @@ main() {
 }
 
 main "$@"
-</code></pre>

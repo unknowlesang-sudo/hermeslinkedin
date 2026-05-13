@@ -1,4 +1,4 @@
-<pre><code class="yaml language-yaml"># =============================================================================
+# =============================================================================
 # ~/.hermes/config.yaml
 # Configuration Hermes Agent — Département Autonome de Prospection LinkedIn
 # Provider : nous (OAuth via hermes login)
@@ -76,4 +76,3 @@ cron:
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 # Les logs sont écrits dans ~/.hermes/logs/
-</code></pre>

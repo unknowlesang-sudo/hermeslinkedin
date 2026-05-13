@@ -1,4 +1,4 @@
-<pre><code class="yaml language-yaml"># =============================================================================
+# =============================================================================
 # tools/bereach_api/tool.yaml
 # Définition HTTP Tool Hermes pour BeReach API
 # Basé sur apibereach.json (OpenAPI 3.0.3)
@@ -7,7 +7,7 @@
 # =============================================================================
 
 name: bereach_api
-description: &gt;
+description: >
   Outil HTTP pour interagir avec l'API BeReach LinkedIn.
   Permet de rechercher des prospects, visiter des profils, envoyer des demandes
   de connexion, envoyer des messages et gérer les connexions LinkedIn.
@@ -33,7 +33,7 @@ tools:
 
   # ── Recherche de personnes ──────────────────────────────────────────────────
   - name: search_people
-    description: &gt;
+    description: >
       Recherche des profils LinkedIn selon des critères ICP (titre, localisation,
       secteur, entreprise, degré de connexion). Retourne jusqu'à 50 résultats par page.
       Utiliser pour identifier des prospects qualifiés.
@@ -103,7 +103,7 @@ tools:
 
   # ── Visite de profil ────────────────────────────────────────────────────────
   - name: visit_profile
-    description: &gt;
+    description: >
       Visite et enrichit un profil LinkedIn. Retourne les données complètes :
       nom, poste, entreprise, résumé, email, téléphone, connexions, followers.
       NE PAS utiliser includePosts=true (utiliser collect_posts à la place).
@@ -138,7 +138,7 @@ tools:
 
   # ── Envoi de demande de connexion ───────────────────────────────────────────
   - name: send_connection
-    description: &gt;
+    description: >
       Envoie une demande de connexion LinkedIn avec un message personnalisé.
       LIMITE STRICTE : 30 connexions/jour maximum sur LinkedIn.
       Toujours personnaliser le message avec un élément du profil du prospect.
@@ -160,7 +160,7 @@ tools:
 
   # ── Envoi de message direct ─────────────────────────────────────────────────
   - name: send_message
-    description: &gt;
+    description: >
       Envoie un message direct LinkedIn à un contact existant (1er degré).
       Utiliser pour le suivi après acceptation de connexion.
       Toujours personnaliser selon l'activité récente du prospect.
@@ -182,7 +182,7 @@ tools:
 
   # ── Récupération des connexions ─────────────────────────────────────────────
   - name: get_connections
-    description: &gt;
+    description: >
       Récupère la liste des connexions LinkedIn du compte.
       Utile pour vérifier si un prospect est déjà connecté avant d'envoyer une demande.
     method: GET
@@ -193,7 +193,7 @@ tools:
 
   # ── Récupération des invitations en attente ─────────────────────────────────
   - name: get_pending_invitations
-    description: &gt;
+    description: >
       Récupère les invitations LinkedIn reçues en attente d'acceptation.
       Utile pour suivre les demandes de connexion envoyées et acceptées.
     method: POST
@@ -204,7 +204,7 @@ tools:
 
   # ── Collecte des posts d'un profil ──────────────────────────────────────────
   - name: collect_posts
-    description: &gt;
+    description: >
       Collecte les posts LinkedIn d'un profil pour analyser l'activité récente.
       Utiliser returnReposts=false pour les posts originaux (priorité).
       Fenêtre recommandée : 45 derniers jours.
@@ -239,9 +239,9 @@ tools:
 
   # ── Collecte des commentaires d'un post ─────────────────────────────────────
   - name: collect_comments
-    description: &gt;
+    description: >
       Collecte les commentaires d'un post LinkedIn spécifique.
-      Utiliser uniquement sur les posts des 45 derniers jours avec commentsCount &gt; 0.
+      Utiliser uniquement sur les posts des 45 derniers jours avec commentsCount > 0.
       Maximum 3 posts analysés par prospect.
     method: POST
     path: /collect/linkedin/comments
@@ -268,7 +268,7 @@ tools:
 
   # ── Vérification des crédits ────────────────────────────────────────────────
   - name: get_credits
-    description: &gt;
+    description: >
       Vérifie le solde de crédits BeReach disponibles.
       Appeler en début de session pour s'assurer d'avoir assez de crédits.
     method: GET
@@ -279,7 +279,7 @@ tools:
 
   # ── Publication d'un post LinkedIn ──────────────────────────────────────────
   - name: publish_post
-    description: &gt;
+    description: >
       Publie un post sur LinkedIn.
       Utiliser pour la stratégie de contenu B2B (skill linkedin-content-publisher).
     method: POST
@@ -298,4 +298,3 @@ tools:
         description: "Visibilité : PUBLIC | CONNECTIONS"
     response:
       description: "Confirmation de publication avec postUrl"
-</code></pre>

@@ -1,4 +1,4 @@
-<pre><code class="bash language-bash">#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # bereach_search.sh — Recherche de personnes LinkedIn via BeReach API
 # Endpoint : POST /search/linkedin/people
@@ -9,7 +9,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Chargement des variables d'environnement
 # -----------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &amp;&amp; pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../../../.env"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -41,7 +41,7 @@ mkdir -p "$LOG_DIR"
 log() {
   local level="$1"
   shift
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" &gt;&amp;2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" >&2
 }
 
 # Délai aléatoire entre 2 et 5 secondes (sécurité anti-ban)
@@ -53,7 +53,7 @@ random_delay() {
 
 # Afficher l'aide
 usage() {
-  cat &lt;&lt;EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Recherche des personnes LinkedIn via BeReach API (POST /search/linkedin/people).
@@ -112,13 +112,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validation des arguments
-if [[ -z "$TITLE" &amp;&amp; -z "$COMPANY" &amp;&amp; -z "$LOCATION" &amp;&amp; -z "$INDUSTRY" ]]; then
+if [[ -z "$TITLE" && -z "$COMPANY" && -z "$LOCATION" && -z "$INDUSTRY" ]]; then
   log "ERROR" "Au moins un critère de recherche est requis (--title, --company, --location, ou --industry)"
   exit 1
 fi
 
 # Validation du degré de connexion
-if [[ "$DEGREE" != "F" &amp;&amp; "$DEGREE" != "S" &amp;&amp; "$DEGREE" != "O" ]]; then
+if [[ "$DEGREE" != "F" && "$DEGREE" != "S" && "$DEGREE" != "O" ]]; then
   log "ERROR" "Degré de connexion invalide : $DEGREE (valeurs acceptées : F, S, O)"
   exit 1
 fi
@@ -136,10 +136,10 @@ build_request_body() {
   local body="{}"
 
   # Ajouter les champs non vides
-  [[ -n "$TITLE" ]]    &amp;&amp; body=$(echo "$body" | jq --arg v "$TITLE"    '. + {title: $v}')
-  [[ -n "$COMPANY" ]]  &amp;&amp; body=$(echo "$body" | jq --arg v "$COMPANY"  '. + {currentCompany: [$v]}')
-  [[ -n "$LOCATION" ]] &amp;&amp; body=$(echo "$body" | jq --arg v "$LOCATION" '. + {location: [$v]}')
-  [[ -n "$INDUSTRY" ]] &amp;&amp; body=$(echo "$body" | jq --arg v "$INDUSTRY" '. + {industry: [$v]}')
+  [[ -n "$TITLE" ]]    && body=$(echo "$body" | jq --arg v "$TITLE"    '. + {title: $v}')
+  [[ -n "$COMPANY" ]]  && body=$(echo "$body" | jq --arg v "$COMPANY"  '. + {currentCompany: [$v]}')
+  [[ -n "$LOCATION" ]] && body=$(echo "$body" | jq --arg v "$LOCATION" '. + {location: [$v]}')
+  [[ -n "$INDUSTRY" ]] && body=$(echo "$body" | jq --arg v "$INDUSTRY" '. + {industry: [$v]}')
 
   # Champs obligatoires
   body=$(echo "$body" | jq \
@@ -171,7 +171,7 @@ call_bereach_api() {
     attempt=$(( attempt + 1 ))
 
     # Délai de sécurité (sauf premier appel)
-    [[ $attempt -gt 1 ]] &amp;&amp; random_delay
+    [[ $attempt -gt 1 ]] && random_delay
 
     log "INFO" "Tentative $attempt/$((MAX_RETRIES + 1))..."
 
@@ -183,7 +183,7 @@ call_bereach_api() {
       -H "Accept: application/json" \
       --max-time 30 \
       --data "$request_body" \
-      "${BEREACH_BASE_URL}/search/linkedin/people" 2&gt;&amp;1)
+      "${BEREACH_BASE_URL}/search/linkedin/people" 2>&1)
 
     # Séparer le body du code HTTP
     http_code=$(echo "$response" | tail -n1)
@@ -201,7 +201,7 @@ call_bereach_api() {
       429)
         # Rate limit — lire retryAfter
         local retry_after
-        retry_after=$(echo "$response" | jq -r '.retryAfter // 60' 2&gt;/dev/null || echo "60")
+        retry_after=$(echo "$response" | jq -r '.retryAfter // 60' 2>/dev/null || echo "60")
         log "WARN" "Rate limit (429) — retryAfter: ${retry_after}s"
 
         if [[ $attempt -le $MAX_RETRIES ]]; then
@@ -209,7 +209,7 @@ call_bereach_api() {
           sleep "$retry_after"
         else
           log "ERROR" "Rate limit persistant après $MAX_RETRIES tentatives"
-          echo "$response" | jq '. + {_error: "RATE_LIMIT_EXCEEDED", _retryAfter: '"$retry_after"'}' 2&gt;/dev/null || \
+          echo "$response" | jq '. + {_error: "RATE_LIMIT_EXCEEDED", _retryAfter: '"$retry_after"'}' 2>/dev/null || \
             echo "{\"_error\": \"RATE_LIMIT_EXCEEDED\", \"_retryAfter\": $retry_after}"
           return 1
         fi
@@ -226,7 +226,7 @@ call_bereach_api() {
         ;;
       400)
         log "ERROR" "Requête invalide (400) : $response"
-        echo "$response" | jq '. + {_error: "BAD_REQUEST"}' 2&gt;/dev/null || \
+        echo "$response" | jq '. + {_error: "BAD_REQUEST"}' 2>/dev/null || \
           echo "{\"_error\": \"BAD_REQUEST\", \"_response\": \"$response\"}"
         return 1
         ;;
@@ -258,23 +258,23 @@ process_response() {
   local response="$1"
 
   # Vérifier que la réponse est du JSON valide
-  if ! echo "$response" | jq empty 2&gt;/dev/null; then
+  if ! echo "$response" | jq empty 2>/dev/null; then
     log "ERROR" "Réponse non-JSON reçue : $response"
     exit 1
   fi
 
   # Extraire les métriques
   local items_count total credits_used retry_after has_more
-  items_count=$(echo "$response" | jq '.items | length' 2&gt;/dev/null || echo "0")
-  total=$(echo "$response" | jq '.paging.total // 0' 2&gt;/dev/null || echo "0")
-  credits_used=$(echo "$response" | jq '.creditsUsed // 0' 2&gt;/dev/null || echo "0")
-  retry_after=$(echo "$response" | jq '.retryAfter // 0' 2&gt;/dev/null || echo "0")
-  has_more=$(echo "$response" | jq '.hasMore // false' 2&gt;/dev/null || echo "false")
+  items_count=$(echo "$response" | jq '.items | length' 2>/dev/null || echo "0")
+  total=$(echo "$response" | jq '.paging.total // 0' 2>/dev/null || echo "0")
+  credits_used=$(echo "$response" | jq '.creditsUsed // 0' 2>/dev/null || echo "0")
+  retry_after=$(echo "$response" | jq '.retryAfter // 0' 2>/dev/null || echo "0")
+  has_more=$(echo "$response" | jq '.hasMore // false' 2>/dev/null || echo "false")
 
   log "INFO" "Résultats : $items_count prospects trouvés (total: $total, hasMore: $has_more)"
   log "INFO" "Crédits consommés : $credits_used | retryAfter : ${retry_after}s"
 
-  # Avertissement si retryAfter &gt; 0
+  # Avertissement si retryAfter > 0
   if [[ "$retry_after" -gt 0 ]]; then
     log "WARN" "retryAfter=${retry_after}s — respecter ce délai avant le prochain appel"
   fi
@@ -294,7 +294,7 @@ process_response() {
       .publicIdentifier = (.publicIdentifier // null) |
       ._enrichedAt = (now | todate)
     ]
-  ' 2&gt;/dev/null || echo "$response")
+  ' 2>/dev/null || echo "$response")
 
   echo "$normalized"
 }
@@ -306,13 +306,13 @@ main() {
   log "INFO" "=== bereach_search.sh démarré ==="
 
   # Vérifier que jq est disponible
-  if ! command -v jq &amp;&gt;/dev/null; then
+  if ! command -v jq &>/dev/null; then
     log "ERROR" "jq est requis mais non installé. Installer avec : apt-get install jq"
     exit 1
   fi
 
   # Vérifier que curl est disponible
-  if ! command -v curl &amp;&gt;/dev/null; then
+  if ! command -v curl &>/dev/null; then
     log "ERROR" "curl est requis mais non installé."
     exit 1
   fi
@@ -338,7 +338,7 @@ main() {
 
   # Sortie
   if [[ -n "$OUTPUT_FILE" ]]; then
-    echo "$final_response" &gt; "$OUTPUT_FILE"
+    echo "$final_response" > "$OUTPUT_FILE"
     log "INFO" "Résultats sauvegardés dans : $OUTPUT_FILE"
   else
     echo "$final_response"
@@ -348,4 +348,3 @@ main() {
 }
 
 main "$@"
-</code></pre>

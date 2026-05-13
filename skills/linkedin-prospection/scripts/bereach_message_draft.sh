@@ -1,4 +1,4 @@
-<pre><code class="bash language-bash">#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # bereach_message_draft.sh — Génération de message de prospection personnalisé
 # Prend les données d'un profil LinkedIn enrichi (JSON) et génère un message
@@ -10,7 +10,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Chargement des variables d'environnement
 # -----------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &amp;&amp; pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../../../.env"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -37,11 +37,11 @@ mkdir -p "$LOG_DIR"
 log() {
   local level="$1"
   shift
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" &gt;&amp;2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" >&2
 }
 
 usage() {
-  cat &lt;&lt;EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Génère un message de prospection LinkedIn personnalisé depuis les données d'un profil.
@@ -77,26 +77,26 @@ EOF
 extract_profile_fields() {
   local profile_data="$1"
 
-  FIRST_NAME=$(echo "$profile_data" | jq -r '.firstName // ""' 2&gt;/dev/null || echo "")
-  LAST_NAME=$(echo "$profile_data" | jq -r '.lastName // ""' 2&gt;/dev/null || echo "")
-  HEADLINE=$(echo "$profile_data" | jq -r '.headline // ""' 2&gt;/dev/null || echo "")
-  COMPANY=$(echo "$profile_data" | jq -r '.company // ""' 2&gt;/dev/null || echo "")
-  POSITION=$(echo "$profile_data" | jq -r '.position // ""' 2&gt;/dev/null || echo "")
-  PROFILE_URL=$(echo "$profile_data" | jq -r '.profileUrl // ""' 2&gt;/dev/null || echo "")
+  FIRST_NAME=$(echo "$profile_data" | jq -r '.firstName // ""' 2>/dev/null || echo "")
+  LAST_NAME=$(echo "$profile_data" | jq -r '.lastName // ""' 2>/dev/null || echo "")
+  HEADLINE=$(echo "$profile_data" | jq -r '.headline // ""' 2>/dev/null || echo "")
+  COMPANY=$(echo "$profile_data" | jq -r '.company // ""' 2>/dev/null || echo "")
+  POSITION=$(echo "$profile_data" | jq -r '.position // ""' 2>/dev/null || echo "")
+  PROFILE_URL=$(echo "$profile_data" | jq -r '.profileUrl // ""' 2>/dev/null || echo "")
 
   # Signaux d'intention (depuis Phase 7 du workflow)
-  HAS_EXPLICIT_PAIN=$(echo "$profile_data" | jq -r '.intentSignals.explicit_pain // false' 2&gt;/dev/null || echo "false")
-  HAS_SEEKING_SOLUTION=$(echo "$profile_data" | jq -r '.intentSignals.seeking_solution // false' 2&gt;/dev/null || echo "false")
-  HAS_TOOL_CHANGE=$(echo "$profile_data" | jq -r '.intentSignals.tool_change // false' 2&gt;/dev/null || echo "false")
-  HAS_GROWTH_SIGNAL=$(echo "$profile_data" | jq -r '.intentSignals.growth_or_launch_signal // false' 2&gt;/dev/null || echo "false")
-  HAS_HIRING=$(echo "$profile_data" | jq -r '.intentSignals.hiring_signal // false' 2&gt;/dev/null || echo "false")
+  HAS_EXPLICIT_PAIN=$(echo "$profile_data" | jq -r '.intentSignals.explicit_pain // false' 2>/dev/null || echo "false")
+  HAS_SEEKING_SOLUTION=$(echo "$profile_data" | jq -r '.intentSignals.seeking_solution // false' 2>/dev/null || echo "false")
+  HAS_TOOL_CHANGE=$(echo "$profile_data" | jq -r '.intentSignals.tool_change // false' 2>/dev/null || echo "false")
+  HAS_GROWTH_SIGNAL=$(echo "$profile_data" | jq -r '.intentSignals.growth_or_launch_signal // false' 2>/dev/null || echo "false")
+  HAS_HIRING=$(echo "$profile_data" | jq -r '.intentSignals.hiring_signal // false' 2>/dev/null || echo "false")
 
   # Dernier post original (pour personnalisation basée sur l'activité)
-  LAST_POST_TEXT=$(echo "$profile_data" | jq -r '.originalPosts45d[0].text // ""' 2&gt;/dev/null | head -c 100 || echo "")
-  LAST_POST_DATE=$(echo "$profile_data" | jq -r '.originalPosts45d[0].date // ""' 2&gt;/dev/null || echo "")
+  LAST_POST_TEXT=$(echo "$profile_data" | jq -r '.originalPosts45d[0].text // ""' 2>/dev/null | head -c 100 || echo "")
+  LAST_POST_DATE=$(echo "$profile_data" | jq -r '.originalPosts45d[0].date // ""' 2>/dev/null || echo "")
 
   # Data quality
-  DATA_QUALITY=$(echo "$profile_data" | jq -r '.dataQuality // "MEDIUM"' 2&gt;/dev/null || echo "MEDIUM")
+  DATA_QUALITY=$(echo "$profile_data" | jq -r '.dataQuality // "MEDIUM"' 2>/dev/null || echo "MEDIUM")
 }
 
 # -----------------------------------------------------------------------------
@@ -131,7 +131,7 @@ generate_message() {
   case "$template" in
     pain_point)
       # Message basé sur un problème détecté dans les posts
-      if [[ -n "$name" &amp;&amp; -n "$short_company" ]]; then
+      if [[ -n "$name" && -n "$short_company" ]]; then
         message="Bonjour ${name}, j'ai vu vos posts sur les défis chez ${short_company}. ${short_offer}. Ça pourrait vous aider — 5 min pour en parler ?"
       elif [[ -n "$name" ]]; then
         message="Bonjour ${name}, vos posts montrent un vrai défi. ${short_offer}. Ça vous parle ? 5 min ?"
@@ -143,7 +143,7 @@ generate_message() {
     activity)
       # Message basé sur un post récent
       local post_snippet="${LAST_POST_TEXT:0:50}"
-      if [[ -n "$name" &amp;&amp; -n "$post_snippet" ]]; then
+      if [[ -n "$name" && -n "$post_snippet" ]]; then
         message="Bonjour ${name}, votre post sur \"${post_snippet}...\" m'a interpellé. ${short_offer}. On pourrait en discuter ?"
       elif [[ -n "$name" ]]; then
         message="Bonjour ${name}, j'ai suivi votre activité récente. ${short_offer}. Ça vous intéresse ?"
@@ -154,7 +154,7 @@ generate_message() {
 
     growth)
       # Message basé sur un signal de croissance ou changement d'outil
-      if [[ -n "$name" &amp;&amp; -n "$short_company" ]]; then
+      if [[ -n "$name" && -n "$short_company" ]]; then
         message="Bonjour ${name}, je vois que ${short_company} est en pleine croissance. ${short_offer}. Ça pourrait accélérer vos résultats ?"
       elif [[ -n "$name" ]]; then
         message="Bonjour ${name}, votre profil montre une belle dynamique. ${short_offer}. On en parle ?"
@@ -165,9 +165,9 @@ generate_message() {
 
     generic|*)
       # Message générique personnalisé
-      if [[ -n "$name" &amp;&amp; -n "$short_position" &amp;&amp; -n "$short_company" ]]; then
+      if [[ -n "$name" && -n "$short_position" && -n "$short_company" ]]; then
         message="Bonjour ${name}, en tant que ${short_position} chez ${short_company}, ${short_offer} pourrait vous intéresser. 5 min pour échanger ?"
-      elif [[ -n "$name" &amp;&amp; -n "$short_company" ]]; then
+      elif [[ -n "$name" && -n "$short_company" ]]; then
         message="Bonjour ${name}, j'ai vu votre profil chez ${short_company}. ${short_offer}. Ça vous parle ?"
       elif [[ -n "$name" ]]; then
         message="Bonjour ${name}, ${short_offer}. Votre profil m'a semblé pertinent — on pourrait échanger ?"
@@ -219,13 +219,13 @@ fi
 main() {
   log "INFO" "=== bereach_message_draft.sh démarré ==="
 
-  if ! command -v jq &amp;&gt;/dev/null; then
+  if ! command -v jq &>/dev/null; then
     log "ERROR" "jq est requis mais non installé."
     exit 1
   fi
 
   # Valider le JSON du profil
-  if ! echo "$PROFILE_DATA" | jq empty 2&gt;/dev/null; then
+  if ! echo "$PROFILE_DATA" | jq empty 2>/dev/null; then
     log "ERROR" "--profile-data n'est pas un JSON valide"
     exit 1
   fi
@@ -280,7 +280,7 @@ main() {
 
   # Sortie
   if [[ -n "$OUTPUT_FILE" ]]; then
-    echo "$draft_json" &gt; "$OUTPUT_FILE"
+    echo "$draft_json" > "$OUTPUT_FILE"
     log "INFO" "Brouillon sauvegardé dans : $OUTPUT_FILE"
   else
     echo "$draft_json"
@@ -290,4 +290,3 @@ main() {
 }
 
 main "$@"
-</code></pre>

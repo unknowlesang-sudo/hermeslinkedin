@@ -1,4 +1,4 @@
-<pre><code class="bash language-bash">#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # export_leads.sh — Export des leads Google Maps vers Google Sheets
 # Auth via google_sheets/oauth_setup.py (OAuth2)
@@ -10,7 +10,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Chargement des variables d'environnement
 # -----------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &amp;&amp; pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../../../.env"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -44,11 +44,11 @@ mkdir -p "$LOG_DIR" "$(dirname "$TOKEN_FILE")"
 log() {
   local level="$1"
   shift
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" &gt;&amp;2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" >&2
 }
 
 usage() {
-  cat &lt;&lt;EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Exporte des leads JSON vers l'onglet 'Leads Google Maps' du CRM Google Sheets.
@@ -85,14 +85,14 @@ get_access_token() {
   # Vérifier le token en cache
   if [[ -f "$TOKEN_FILE" ]]; then
     local expiry
-    expiry=$(jq -r '.expiry // ""' "$TOKEN_FILE" 2&gt;/dev/null || echo "")
+    expiry=$(jq -r '.expiry // ""' "$TOKEN_FILE" 2>/dev/null || echo "")
     local now
     now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-    if [[ -n "$expiry" &amp;&amp; "$expiry" &gt; "$now" ]]; then
+    if [[ -n "$expiry" && "$expiry" > "$now" ]]; then
       local token
-      token=$(jq -r '.token' "$TOKEN_FILE" 2&gt;/dev/null || echo "")
-      if [[ -n "$token" &amp;&amp; "$token" != "null" ]]; then
+      token=$(jq -r '.token' "$TOKEN_FILE" 2>/dev/null || echo "")
+      if [[ -n "$token" && "$token" != "null" ]]; then
         echo "$token"
         return 0
       fi
@@ -105,7 +105,7 @@ get_access_token() {
     local token
     token=$(python3 "$OAUTH_SCRIPT" --action get-token \
       --credentials "$CREDENTIALS_FILE" \
-      --token-file "$TOKEN_FILE" 2&gt;/dev/null)
+      --token-file "$TOKEN_FILE" 2>/dev/null)
     if [[ -n "$token" ]]; then
       echo "$token"
       return 0
@@ -138,7 +138,7 @@ sheets_api_call() {
       -H "Authorization: Bearer $token" \
       -H "Accept: application/json" \
       --max-time 30 \
-      "${SHEETS_BASE_URL}/${GOOGLE_SHEETS_ID}${endpoint}" 2&gt;&amp;1)
+      "${SHEETS_BASE_URL}/${GOOGLE_SHEETS_ID}${endpoint}" 2>&1)
   else
     response=$(curl -s -w "\n%{http_code}" \
       -X "$method" \
@@ -147,7 +147,7 @@ sheets_api_call() {
       -H "Accept: application/json" \
       --max-time 30 \
       ${body:+--data "$body"} \
-      "${SHEETS_BASE_URL}/${GOOGLE_SHEETS_ID}${endpoint}" 2&gt;&amp;1)
+      "${SHEETS_BASE_URL}/${GOOGLE_SHEETS_ID}${endpoint}" 2>&1)
   fi
 
   local http_code
@@ -179,7 +179,7 @@ ensure_sheet_exists() {
   sheet_exists=$(echo "$spreadsheet_info" | jq \
     --arg name "$sheet_name" \
     '.sheets[] | select(.properties.title == $name) | .properties.sheetId' \
-    2&gt;/dev/null | head -1)
+    2>/dev/null | head -1)
 
   if [[ -n "$sheet_exists" ]]; then
     log "INFO" "Onglet '$sheet_name' trouvé (ID: $sheet_exists)"
@@ -205,7 +205,7 @@ ensure_sheet_exists() {
       }]
     }')
 
-  sheets_api_call "POST" ":batchUpdate" "$create_body" "$token" &gt; /dev/null
+  sheets_api_call "POST" ":batchUpdate" "$create_body" "$token" > /dev/null
 
   log "INFO" "Onglet '$sheet_name' créé"
 
@@ -223,7 +223,7 @@ ensure_sheet_exists() {
   sheets_api_call "PUT" \
     "/values/${sheet_name}!A1:M1?valueInputOption=USER_ENTERED" \
     "$headers_body" \
-    "$token" &gt; /dev/null
+    "$token" > /dev/null
 
   log "INFO" "En-têtes ajoutés à l'onglet '$sheet_name'"
 }
@@ -242,14 +242,14 @@ load_existing_leads() {
   response=$(sheets_api_call "GET" \
     "/values/${sheet_name}!A:E?majorDimension=ROWS" \
     "" \
-    "$token" 2&gt;/dev/null || echo '{"values":[]}')
+    "$token" 2>/dev/null || echo '{"values":[]}')
 
   # Extraire les clés de déduplication (nom + adresse normalisés)
   echo "$response" | jq -r '
     .values // [] |
     .[1:] |  # Ignorer l'"'"'en-tête
     .[] |
-    select(length &gt;= 2) |
+    select(length >= 2) |
     (
       (.[1] // "") + "|" + (.[3] // "")  # nom|adresse
     ) |
@@ -257,7 +257,7 @@ load_existing_leads() {
     gsub("  +"; " ") |
     ltrimstr(" ") |
     rtrimstr(" ")
-  ' 2&gt;/dev/null | sort -u
+  ' 2>/dev/null | sort -u
 }
 
 # -----------------------------------------------------------------------------
@@ -275,7 +275,7 @@ deduplicate_leads() {
   # Créer un fichier temporaire avec les clés existantes
   local tmp_keys
   tmp_keys=$(mktemp)
-  echo "$existing_keys" &gt; "$tmp_keys"
+  echo "$existing_keys" > "$tmp_keys"
 
   # Filtrer les leads non présents
   local new_leads
@@ -294,7 +294,7 @@ deduplicate_leads() {
       ) as $key |
       select($keys | map(. == $key) | any | not)
     ]
-    ' 2&gt;/dev/null || echo "$leads")
+    ' 2>/dev/null || echo "$leads")
 
   rm -f "$tmp_keys"
 
@@ -329,7 +329,7 @@ lead_to_row() {
       (.statut // "Nouveau"),
       (.notes // "")
     ]
-  ' &lt;&lt;&lt; "$lead" 2&gt;/dev/null
+  ' <<< "$lead" 2>/dev/null
 }
 
 # -----------------------------------------------------------------------------
@@ -370,7 +370,7 @@ export_leads_batch() {
         (.notes // "")
       ]
     ]
-  ' 2&gt;/dev/null)
+  ' 2>/dev/null)
 
   # Construire le body de la requête
   local append_body
@@ -386,12 +386,12 @@ export_leads_batch() {
   # Appel API append
   local response
   response=$(sheets_api_call "POST" \
-    "/values/${sheet_name}!A:M:append?valueInputOption=USER_ENTERED&amp;insertDataOption=INSERT_ROWS" \
+    "/values/${sheet_name}!A:M:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS" \
     "$append_body" \
     "$token")
 
   local updated_rows
-  updated_rows=$(echo "$response" | jq -r '.updates.updatedRows // 0' 2&gt;/dev/null || echo "0")
+  updated_rows=$(echo "$response" | jq -r '.updates.updatedRows // 0' 2>/dev/null || echo "0")
 
   log "INFO" "✅ $updated_rows lignes ajoutées dans '$sheet_name'"
   echo "$updated_rows"
@@ -437,7 +437,7 @@ fi
 main() {
   log "INFO" "=== export_leads.sh démarré ==="
 
-  if ! command -v jq &amp;&gt;/dev/null; then
+  if ! command -v jq &>/dev/null; then
     log "ERROR" "jq est requis mais non installé."
     exit 1
   fi
@@ -450,7 +450,7 @@ main() {
 
   # Extraire le tableau de leads (supporte les deux formats)
   local leads
-  if echo "$raw_data" | jq -e '.leads' &amp;&gt;/dev/null 2&gt;&amp;1; then
+  if echo "$raw_data" | jq -e '.leads' &>/dev/null 2>&1; then
     leads=$(echo "$raw_data" | jq '.leads')
     log "INFO" "Format détecté : objet avec métadonnées"
   else
@@ -532,7 +532,7 @@ main() {
 
   # Sortie
   if [[ -n "$OUTPUT_FILE" ]]; then
-    echo "$report" &gt; "$OUTPUT_FILE"
+    echo "$report" > "$OUTPUT_FILE"
     log "INFO" "Rapport sauvegardé dans : $OUTPUT_FILE"
   else
     echo "$report"
@@ -542,4 +542,3 @@ main() {
 }
 
 main "$@"
-</code></pre>

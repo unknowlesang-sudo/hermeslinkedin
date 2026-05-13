@@ -1,4 +1,4 @@
-<pre><code class="bash language-bash">#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # telegram_validation.sh — Validation humaine via Telegram (boutons inline)
 # Envoie un message de prospection draft sur Telegram avec boutons :
@@ -11,7 +11,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Chargement des variables d'environnement
 # -----------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &amp;&amp; pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../../../.env"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -42,11 +42,11 @@ mkdir -p "$LOG_DIR" "$(dirname "$OFFSET_FILE")"
 log() {
   local level="$1"
   shift
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" &gt;&amp;2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" >&2
 }
 
 usage() {
-  cat &lt;&lt;EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Envoie un message draft sur Telegram pour validation humaine.
@@ -88,7 +88,7 @@ get_offset() {
 }
 
 save_offset() {
-  echo "$1" &gt; "$OFFSET_FILE"
+  echo "$1" > "$OFFSET_FILE"
 }
 
 # -----------------------------------------------------------------------------
@@ -128,11 +128,11 @@ send_telegram_message() {
         parse_mode: "HTML",
         reply_markup: $keyboard
       }')" \
-    --max-time 15 2&gt;&amp;1)
+    --max-time 15 2>&1)
 
   # Extraire le message_id pour référence
   local message_id
-  message_id=$(echo "$response" | jq -r '.result.message_id // ""' 2&gt;/dev/null || echo "")
+  message_id=$(echo "$response" | jq -r '.result.message_id // ""' 2>/dev/null || echo "")
 
   if [[ -z "$message_id" ]]; then
     log "ERROR" "Échec envoi message Telegram : $response"
@@ -153,15 +153,15 @@ build_telegram_text() {
   local message_text="$4"
   local message_length="${#message_text}"
 
-  cat &lt;&lt;EOF
-🔔 &lt;b&gt;Validation message LinkedIn&lt;/b&gt;
+  cat <<EOF
+🔔 <b>Validation message LinkedIn</b>
 
-👤 &lt;b&gt;Prospect :&lt;/b&gt; ${prospect_name}
-🔗 &lt;b&gt;Profil :&lt;/b&gt; ${prospect_url}
-📏 &lt;b&gt;Longueur :&lt;/b&gt; ${message_length}/300 chars
+👤 <b>Prospect :</b> ${prospect_name}
+🔗 <b>Profil :</b> ${prospect_url}
+📏 <b>Longueur :</b> ${message_length}/300 chars
 
-📝 &lt;b&gt;Message à envoyer :&lt;/b&gt;
-&lt;i&gt;${message_text}&lt;/i&gt;
+📝 <b>Message à envoyer :</b>
+<i>${message_text}</i>
 
 ━━━━━━━━━━━━━━━━━━━━
 Que souhaitez-vous faire ?
@@ -194,10 +194,10 @@ poll_for_response() {
     # Appel getUpdates avec long-polling
     local updates
     updates=$(curl -s \
-      "${TELEGRAM_API}/getUpdates?offset=${offset}&amp;timeout=${POLL_TIMEOUT}&amp;allowed_updates=[\"callback_query\"]" \
-      --max-time $(( POLL_TIMEOUT + 5 )) 2&gt;&amp;1)
+      "${TELEGRAM_API}/getUpdates?offset=${offset}&timeout=${POLL_TIMEOUT}&allowed_updates=[\"callback_query\"]" \
+      --max-time $(( POLL_TIMEOUT + 5 )) 2>&1)
 
-    if ! echo "$updates" | jq -e '.ok' &amp;&gt;/dev/null; then
+    if ! echo "$updates" | jq -e '.ok' &>/dev/null; then
       log "WARN" "Erreur getUpdates : $updates"
       sleep "$POLL_INTERVAL"
       continue
@@ -205,12 +205,12 @@ poll_for_response() {
 
     # Traiter chaque update
     local update_count
-    update_count=$(echo "$updates" | jq '.result | length' 2&gt;/dev/null || echo "0")
+    update_count=$(echo "$updates" | jq '.result | length' 2>/dev/null || echo "0")
 
     if [[ "$update_count" -gt 0 ]]; then
       # Mettre à jour l'offset
       local last_update_id
-      last_update_id=$(echo "$updates" | jq '.result[-1].update_id' 2&gt;/dev/null || echo "$offset")
+      last_update_id=$(echo "$updates" | jq '.result[-1].update_id' 2>/dev/null || echo "$offset")
       save_offset $(( last_update_id + 1 ))
       offset=$(( last_update_id + 1 ))
 
@@ -221,7 +221,7 @@ poll_for_response() {
         '.result[] |
           select(.callback_query != null) |
           select(.callback_query.data | startswith($prefix)) |
-          .callback_query.data' 2&gt;/dev/null | head -1)
+          .callback_query.data' 2>/dev/null | head -1)
 
       if [[ -n "$matching_callback" ]]; then
         log "INFO" "Réponse reçue : $matching_callback"
@@ -252,13 +252,13 @@ request_modification() {
   local prospect_name="$2"
 
   local mod_text
-  mod_text=$(cat &lt;&lt;EOF
-✏️ &lt;b&gt;Modification demandée&lt;/b&gt;
+  mod_text=$(cat <<EOF
+✏️ <b>Modification demandée</b>
 
 Prospect : ${prospect_name}
 
 Message original :
-&lt;i&gt;${original_message}&lt;/i&gt;
+<i>${original_message}</i>
 
 Répondez à ce message avec le nouveau texte (max 300 chars).
 EOF
@@ -277,7 +277,7 @@ EOF
         parse_mode: "HTML",
         reply_markup: {force_reply: true, selective: false}
       }')" \
-    --max-time 15 &amp;&gt;/dev/null
+    --max-time 15 &>/dev/null
 
   log "INFO" "Demande de modification envoyée — attente de la réponse..."
 
@@ -289,19 +289,19 @@ EOF
 
   while true; do
     local elapsed=$(( $(date +%s) - start_time ))
-    [[ $elapsed -ge $MAX_WAIT_SECONDS ]] &amp;&amp; { echo "$original_message"; return 1; }
+    [[ $elapsed -ge $MAX_WAIT_SECONDS ]] && { echo "$original_message"; return 1; }
 
     local updates
     updates=$(curl -s \
-      "${TELEGRAM_API}/getUpdates?offset=${offset}&amp;timeout=30&amp;allowed_updates=[\"message\"]" \
-      --max-time 35 2&gt;&amp;1)
+      "${TELEGRAM_API}/getUpdates?offset=${offset}&timeout=30&allowed_updates=[\"message\"]" \
+      --max-time 35 2>&1)
 
     local update_count
-    update_count=$(echo "$updates" | jq '.result | length' 2&gt;/dev/null || echo "0")
+    update_count=$(echo "$updates" | jq '.result | length' 2>/dev/null || echo "0")
 
     if [[ "$update_count" -gt 0 ]]; then
       local last_update_id
-      last_update_id=$(echo "$updates" | jq '.result[-1].update_id' 2&gt;/dev/null || echo "$offset")
+      last_update_id=$(echo "$updates" | jq '.result[-1].update_id' 2>/dev/null || echo "$offset")
       save_offset $(( last_update_id + 1 ))
       offset=$(( last_update_id + 1 ))
 
@@ -311,9 +311,9 @@ EOF
         '.result[] |
           select(.message.text != null) |
           select(.message.chat.id | tostring == "'"$TELEGRAM_CHAT_ID"'") |
-          .message.text' 2&gt;/dev/null | head -1)
+          .message.text' 2>/dev/null | head -1)
 
-      if [[ -n "$new_message" &amp;&amp; "$new_message" != "null" ]]; then
+      if [[ -n "$new_message" && "$new_message" != "null" ]]; then
         # Tronquer si nécessaire
         if [[ ${#new_message} -gt 300 ]]; then
           new_message="${new_message:0:297}..."
@@ -362,14 +362,14 @@ fi
 main() {
   log "INFO" "=== telegram_validation.sh démarré ==="
 
-  if ! command -v jq &amp;&gt;/dev/null; then
+  if ! command -v jq &>/dev/null; then
     log "ERROR" "jq est requis mais non installé."
     exit 1
   fi
 
   # Extraire le texte du message (JSON ou texte brut)
   local message_text
-  if echo "$MESSAGE_DRAFT" | jq -e '.message' &amp;&gt;/dev/null 2&gt;&amp;1; then
+  if echo "$MESSAGE_DRAFT" | jq -e '.message' &>/dev/null 2>&1; then
     message_text=$(echo "$MESSAGE_DRAFT" | jq -r '.message')
   else
     message_text="$MESSAGE_DRAFT"
@@ -448,7 +448,7 @@ main() {
 
   # Sortie
   if [[ -n "$OUTPUT_FILE" ]]; then
-    echo "$result" &gt; "$OUTPUT_FILE"
+    echo "$result" > "$OUTPUT_FILE"
     log "INFO" "Résultat sauvegardé dans : $OUTPUT_FILE"
   else
     echo "$result"
@@ -458,4 +458,3 @@ main() {
 }
 
 main "$@"
-</code></pre>

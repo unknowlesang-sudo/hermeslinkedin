@@ -1,4 +1,4 @@
-<pre><code class="bash language-bash">#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # bereach_followup.sh — Suivi des demandes de connexion LinkedIn via BeReach API
 # Endpoints :
@@ -11,7 +11,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Chargement des variables d'environnement
 # -----------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &amp;&amp; pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/../../../../.env"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -41,7 +41,7 @@ mkdir -p "$LOG_DIR" "$CACHE_DIR"
 log() {
   local level="$1"
   shift
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" &gt;&amp;2
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE" >&2
 }
 
 random_delay() {
@@ -51,7 +51,7 @@ random_delay() {
 }
 
 usage() {
-  cat &lt;&lt;EOF
+  cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
 Vérifie les nouvelles acceptations de connexion LinkedIn.
@@ -84,7 +84,7 @@ api_call() {
 
   while [[ $attempt -le $MAX_RETRIES ]]; do
     attempt=$(( attempt + 1 ))
-    [[ $attempt -gt 1 ]] &amp;&amp; random_delay
+    [[ $attempt -gt 1 ]] && random_delay
 
     if [[ "$method" == "GET" ]]; then
       response=$(curl -s -w "\n%{http_code}" \
@@ -92,7 +92,7 @@ api_call() {
         -H "Authorization: Bearer ${BEREACH_TOKEN}" \
         -H "Accept: application/json" \
         --max-time 30 \
-        "${BEREACH_BASE_URL}${endpoint}" 2&gt;&amp;1)
+        "${BEREACH_BASE_URL}${endpoint}" 2>&1)
     else
       response=$(curl -s -w "\n%{http_code}" \
         -X POST \
@@ -101,7 +101,7 @@ api_call() {
         -H "Accept: application/json" \
         --max-time 30 \
         ${body:+--data "$body"} \
-        "${BEREACH_BASE_URL}${endpoint}" 2&gt;&amp;1)
+        "${BEREACH_BASE_URL}${endpoint}" 2>&1)
     fi
 
     http_code=$(echo "$response" | tail -n1)
@@ -114,9 +114,9 @@ api_call() {
         ;;
       429)
         local retry_after
-        retry_after=$(echo "$response" | jq -r '.retryAfter // 60' 2&gt;/dev/null || echo "60")
+        retry_after=$(echo "$response" | jq -r '.retryAfter // 60' 2>/dev/null || echo "60")
         log "WARN" "Rate limit (429) sur $endpoint — attente ${retry_after}s"
-        [[ $attempt -le $MAX_RETRIES ]] &amp;&amp; sleep "$retry_after" || { echo "{\"_error\": \"RATE_LIMIT\"}"; return 1; }
+        [[ $attempt -le $MAX_RETRIES ]] && sleep "$retry_after" || { echo "{\"_error\": \"RATE_LIMIT\"}"; return 1; }
         ;;
       401)
         log "ERROR" "Auth échouée (401) sur $endpoint"
@@ -125,7 +125,7 @@ api_call() {
         ;;
       500|502|503)
         log "WARN" "Erreur serveur ($http_code) sur $endpoint"
-        [[ $attempt -le $MAX_RETRIES ]] &amp;&amp; sleep $(( 5 * attempt )) || { echo "{\"_error\": \"SERVER_ERROR\"}"; return 1; }
+        [[ $attempt -le $MAX_RETRIES ]] && sleep $(( 5 * attempt )) || { echo "{\"_error\": \"SERVER_ERROR\"}"; return 1; }
         ;;
       *)
         log "ERROR" "HTTP $http_code inattendu sur $endpoint"
@@ -147,7 +147,7 @@ get_sent_invitations() {
   local response
   response=$(api_call "POST" "/invitations/linkedin/sent" '{}')
 
-  if echo "$response" | jq -e '._error' &amp;&gt;/dev/null; then
+  if echo "$response" | jq -e '._error' &>/dev/null; then
     log "ERROR" "Échec récupération invitations envoyées : $response"
     echo "[]"
     return 1
@@ -155,14 +155,14 @@ get_sent_invitations() {
 
   # Extraire la liste des invitations
   local invitations
-  invitations=$(echo "$response" | jq '.items // .invitations // []' 2&gt;/dev/null || echo "[]")
+  invitations=$(echo "$response" | jq '.items // .invitations // []' 2>/dev/null || echo "[]")
 
   local count
   count=$(echo "$invitations" | jq 'length')
   log "INFO" "$count invitations en attente trouvées"
 
   # Mettre en cache
-  echo "$invitations" &gt; "$SENT_INVITATIONS_CACHE"
+  echo "$invitations" > "$SENT_INVITATIONS_CACHE"
   log "INFO" "Cache mis à jour : $SENT_INVITATIONS_CACHE"
 
   echo "$invitations"
@@ -179,14 +179,14 @@ get_current_connections() {
   local response
   response=$(api_call "GET" "/me/linkedin/connections")
 
-  if echo "$response" | jq -e '._error' &amp;&gt;/dev/null; then
+  if echo "$response" | jq -e '._error' &>/dev/null; then
     log "ERROR" "Échec récupération connexions : $response"
     echo "[]"
     return 1
   fi
 
   local connections
-  connections=$(echo "$response" | jq '.items // .connections // []' 2&gt;/dev/null || echo "[]")
+  connections=$(echo "$response" | jq '.items // .connections // []' 2>/dev/null || echo "[]")
 
   local count
   count=$(echo "$connections" | jq 'length')
@@ -215,7 +215,7 @@ get_crm_pending_profiles() {
   fi
 
   # Lire les profils avec statut "Connexion envoyée" depuis le CRM
-  bash "$gsheet_script" --action read --filter-status "Connexion envoyée" 2&gt;/dev/null || echo "[]"
+  bash "$gsheet_script" --action read --filter-status "Connexion envoyée" 2>/dev/null || echo "[]"
 }
 
 # -----------------------------------------------------------------------------
@@ -238,7 +238,7 @@ detect_new_acceptances() {
       rtrimstr("/") |
       ascii_downcase
     ] | unique
-  ' 2&gt;/dev/null || echo "[]")
+  ' 2>/dev/null || echo "[]")
 
   # Comparer avec les profils en attente
   local new_acceptances
@@ -258,7 +258,7 @@ detect_new_acceptances() {
         ($connections | map(. == $normalized_url) | any) and
         (
           $since == "" or
-          (.sentAt // .date // "1970-01-01") &gt;= $since
+          (.sentAt // .date // "1970-01-01") >= $since
         )
       ) |
       . + {
@@ -267,7 +267,7 @@ detect_new_acceptances() {
         _normalizedUrl: $normalized_url
       }
     ]
-  ' 2&gt;/dev/null || echo "[]")
+  ' 2>/dev/null || echo "[]")
 
   local count
   count=$(echo "$new_acceptances" | jq 'length')
@@ -302,7 +302,7 @@ done
 main() {
   log "INFO" "=== bereach_followup.sh démarré ==="
 
-  if ! command -v jq &amp;&gt;/dev/null; then
+  if ! command -v jq &>/dev/null; then
     log "ERROR" "jq est requis mais non installé."
     exit 1
   fi
@@ -337,7 +337,7 @@ main() {
           bash "$gsheet_script" \
             --action update-status \
             --prospect-data "$prospect" \
-            --new-status "Connexion acceptée" 2&gt;/dev/null || \
+            --new-status "Connexion acceptée" 2>/dev/null || \
             log "WARN" "Échec mise à jour CRM pour : $(echo "$prospect" | jq -r '._normalizedUrl')"
           random_delay
         done
@@ -364,7 +364,7 @@ main() {
 
   # 7. Sortie
   if [[ -n "$OUTPUT_FILE" ]]; then
-    echo "$report" &gt; "$OUTPUT_FILE"
+    echo "$report" > "$OUTPUT_FILE"
     log "INFO" "Rapport sauvegardé dans : $OUTPUT_FILE"
   else
     echo "$report"
@@ -374,4 +374,3 @@ main() {
 }
 
 main "$@"
-</code></pre>
