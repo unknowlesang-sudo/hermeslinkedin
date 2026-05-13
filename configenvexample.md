@@ -1,0 +1,62 @@
+<pre><code class="bash language-bash"># =============================================================================
+# .env.example — Variables d'environnement pour hermes-business-agents
+# Copiez ce fichier en .env et renseignez vos vraies valeurs
+# IMPORTANT : Ne committez JAMAIS le fichier .env dans git !
+# =============================================================================
+
+# ─── BeReach API ─────────────────────────────────────────────────────────────
+# Token d'authentification BeReach (format : brc_xxxxxxxxxxxx)
+# Obtenez-le sur : https://app.bereach.ai/settings/api
+BEREACH_TOKEN=brc_your_token_here
+
+# ─── Telegram Bot ────────────────────────────────────────────────────────────
+# Token du bot Telegram pour les notifications et rapports quotidiens
+# Créez un bot via @BotFather sur Telegram : https://t.me/BotFather
+TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ
+
+# ID du chat Telegram où envoyer les notifications
+# Obtenez-le en envoyant un message à @userinfobot sur Telegram
+TELEGRAM_CHAT_ID=123456789
+
+# ─── Composio MCP (LinkedIn) ─────────────────────────────────────────────────
+# Clé API Composio pour l'intégration LinkedIn via MCP
+# Obtenez-la sur : https://app.composio.dev/settings
+COMPOSIO_API_KEY=your_composio_api_key_here
+
+# URL du serveur MCP Composio (générée automatiquement avec votre clé)
+# Format : https://mcp.composio.dev/linkedin/YOUR_COMPOSIO_KEY
+COMPOSIO_MCP_URL=https://mcp.composio.dev/linkedin/your_composio_key_here
+
+# ─── Google Sheets OAuth2 ────────────────────────────────────────────────────
+# Identifiants OAuth2 pour l'accès à Google Sheets (suivi des prospects)
+# Créez un projet sur : https://console.cloud.google.com/
+# Activez l'API Google Sheets, puis créez des identifiants OAuth2
+
+# Client ID de votre application Google OAuth2
+GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
+
+# Client Secret de votre application Google OAuth2
+GOOGLE_CLIENT_SECRET=GOCSPX-your_client_secret_here
+
+# ID du Google Spreadsheet pour le suivi des prospects
+# Extrait de l'URL : https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit
+GOOGLE_SPREADSHEET_ID=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms
+
+# ─── Configuration ICP (Ideal Customer Profile) ──────────────────────────────
+# Description de votre client idéal pour la prospection LinkedIn
+# Soyez précis : secteur, taille d'entreprise, poste, problématiques
+ICP_DESCRIPTION=Directeurs commerciaux et CEO de PME B2B (10-200 salariés) en France, secteurs SaaS/Tech/Conseil, cherchant à automatiser leur prospection LinkedIn
+
+# ─── Description de l'offre ──────────────────────────────────────────────────
+# Description de votre offre commerciale pour personnaliser les messages
+OFFER_DESCRIPTION=Département Autonome de Prospection LinkedIn à 197€/mois — Agent IA qui prospecte 7 nouveaux clients qualifiés par jour sur LinkedIn, entièrement automatisé
+
+# ─── Objectifs de prospection ────────────────────────────────────────────────
+# Nombre de prospects à contacter par jour (recommandé : 5-10 pour rester dans les limites LinkedIn)
+DAILY_PROSPECT_TARGET=7
+
+# ─── Nous Research (Hermes Agent) ────────────────────────────────────────────
+# Optionnel : API key si vous utilisez provider "nous-api" au lieu de "nous" (OAuth)
+# Laissez vide si vous utilisez `hermes login` (OAuth recommandé)
+# NOUS_API_KEY=your_nous_api_key_here
+</code></pre>

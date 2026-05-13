@@ -1,0 +1,301 @@
+<pre><code class="yaml language-yaml"># =============================================================================
+# tools/bereach_api/tool.yaml
+# Définition HTTP Tool Hermes pour BeReach API
+# Basé sur apibereach.json (OpenAPI 3.0.3)
+# Base URL : https://api.bereach.ai
+# Auth : Authorization: Bearer ${BEREACH_TOKEN}
+# =============================================================================
+
+name: bereach_api
+description: &gt;
+  Outil HTTP pour interagir avec l'API BeReach LinkedIn.
+  Permet de rechercher des prospects, visiter des profils, envoyer des demandes
+  de connexion, envoyer des messages et gérer les connexions LinkedIn.
+  Respecte les limites : 30 connexions/jour max, retryAfter obligatoire.
+
+version: "1.0.0"
+author: "hermes-business-agents"
+
+# ─── Configuration de base ───────────────────────────────────────────────────
+base_url: "https://api.bereach.ai"
+
+# En-têtes communs à toutes les requêtes
+default_headers:
+  Authorization: "Bearer ${BEREACH_TOKEN}"
+  Content-Type: "application/json"
+  Accept: "application/json"
+
+# Timeout par défaut (secondes)
+timeout: 60
+
+# ─── Outils disponibles ──────────────────────────────────────────────────────
+tools:
+
+  # ── Recherche de personnes ──────────────────────────────────────────────────
+  - name: search_people
+    description: &gt;
+      Recherche des profils LinkedIn selon des critères ICP (titre, localisation,
+      secteur, entreprise, degré de connexion). Retourne jusqu'à 50 résultats par page.
+      Utiliser pour identifier des prospects qualifiés.
+    method: POST
+    path: /search/linkedin/people
+    parameters:
+      - name: title
+        in: body
+        type: string
+        required: false
+        description: "Requête booléenne sur le titre (ex: 'CEO OR Directeur Commercial')"
+      - name: keywords
+        in: body
+        type: string
+        required: false
+        description: "Mots-clés de recherche générale"
+      - name: location
+        in: body
+        type: array
+        items:
+          type: string
+        required: false
+        description: "IDs de localisation LinkedIn (ex: ['105015875'] pour France)"
+      - name: industry
+        in: body
+        type: array
+        items:
+          type: string
+        required: false
+        description: "IDs de secteur LinkedIn"
+      - name: currentCompany
+        in: body
+        type: array
+        items:
+          type: string
+        required: false
+        description: "IDs d'entreprises actuelles"
+      - name: profileLanguage
+        in: body
+        type: array
+        items:
+          type: string
+        required: false
+        description: "Langues du profil (ex: ['fr', 'en'])"
+      - name: connectionDegree
+        in: body
+        type: array
+        items:
+          type: string
+          enum: [F, S, O]
+        required: false
+        description: "Degré de connexion : F=1er, S=2ème, O=hors réseau"
+      - name: count
+        in: body
+        type: integer
+        required: false
+        default: 10
+        description: "Nombre de résultats (1-50 max)"
+      - name: start
+        in: body
+        type: integer
+        required: false
+        default: 0
+        description: "Offset de pagination"
+    response:
+      description: "Liste de profils avec profileUrl, name, headline, location, networkDistance"
+
+  # ── Visite de profil ────────────────────────────────────────────────────────
+  - name: visit_profile
+    description: &gt;
+      Visite et enrichit un profil LinkedIn. Retourne les données complètes :
+      nom, poste, entreprise, résumé, email, téléphone, connexions, followers.
+      NE PAS utiliser includePosts=true (utiliser collect_posts à la place).
+    method: POST
+    path: /visit/linkedin/profile
+    parameters:
+      - name: profile
+        in: body
+        type: string
+        required: true
+        description: "URL du profil LinkedIn (ex: https://www.linkedin.com/in/username)"
+      - name: includeAbout
+        in: body
+        type: boolean
+        required: false
+        default: true
+        description: "Inclure la section 'À propos'"
+      - name: includePosts
+        in: body
+        type: boolean
+        required: false
+        default: false
+        description: "NE PAS activer — utiliser collect_posts à la place"
+      - name: includeComments
+        in: body
+        type: boolean
+        required: false
+        default: false
+        description: "NE PAS activer — utiliser collect_comments à la place"
+    response:
+      description: "Profil complet : firstName, lastName, headline, summary, email, phone, company, position, connectionsCount, followersCount, positions, educations"
+
+  # ── Envoi de demande de connexion ───────────────────────────────────────────
+  - name: send_connection
+    description: &gt;
+      Envoie une demande de connexion LinkedIn avec un message personnalisé.
+      LIMITE STRICTE : 30 connexions/jour maximum sur LinkedIn.
+      Toujours personnaliser le message avec un élément du profil du prospect.
+    method: POST
+    path: /connect/linkedin/profile
+    parameters:
+      - name: profile
+        in: body
+        type: string
+        required: true
+        description: "URL du profil LinkedIn cible"
+      - name: message
+        in: body
+        type: string
+        required: false
+        description: "Message de connexion personnalisé (300 caractères max)"
+    response:
+      description: "Confirmation d'envoi de la demande de connexion"
+
+  # ── Envoi de message direct ─────────────────────────────────────────────────
+  - name: send_message
+    description: &gt;
+      Envoie un message direct LinkedIn à un contact existant (1er degré).
+      Utiliser pour le suivi après acceptation de connexion.
+      Toujours personnaliser selon l'activité récente du prospect.
+    method: POST
+    path: /message/linkedin
+    parameters:
+      - name: profile
+        in: body
+        type: string
+        required: true
+        description: "URL du profil LinkedIn du destinataire"
+      - name: message
+        in: body
+        type: string
+        required: true
+        description: "Contenu du message (texte libre)"
+    response:
+      description: "Confirmation d'envoi du message"
+
+  # ── Récupération des connexions ─────────────────────────────────────────────
+  - name: get_connections
+    description: &gt;
+      Récupère la liste des connexions LinkedIn du compte.
+      Utile pour vérifier si un prospect est déjà connecté avant d'envoyer une demande.
+    method: GET
+    path: /me/linkedin/connections
+    parameters: []
+    response:
+      description: "Liste des connexions avec profileUrl, name, headline"
+
+  # ── Récupération des invitations en attente ─────────────────────────────────
+  - name: get_pending_invitations
+    description: &gt;
+      Récupère les invitations LinkedIn reçues en attente d'acceptation.
+      Utile pour suivre les demandes de connexion envoyées et acceptées.
+    method: POST
+    path: /invitations/linkedin
+    parameters: []
+    response:
+      description: "Liste des invitations reçues avec statut"
+
+  # ── Collecte des posts d'un profil ──────────────────────────────────────────
+  - name: collect_posts
+    description: &gt;
+      Collecte les posts LinkedIn d'un profil pour analyser l'activité récente.
+      Utiliser returnReposts=false pour les posts originaux (priorité).
+      Fenêtre recommandée : 45 derniers jours.
+    method: POST
+    path: /collect/linkedin/posts
+    parameters:
+      - name: profileUrl
+        in: body
+        type: string
+        required: true
+        description: "URL du profil LinkedIn"
+      - name: count
+        in: body
+        type: integer
+        required: false
+        default: 20
+        description: "Nombre de posts à récupérer (max 20)"
+      - name: start
+        in: body
+        type: integer
+        required: false
+        default: 0
+        description: "Offset de pagination"
+      - name: returnReposts
+        in: body
+        type: boolean
+        required: false
+        default: false
+        description: "false=posts originaux uniquement, true=inclure reposts"
+    response:
+      description: "Liste de posts avec postUrl, text, date, likesCount, commentsCount, type"
+
+  # ── Collecte des commentaires d'un post ─────────────────────────────────────
+  - name: collect_comments
+    description: &gt;
+      Collecte les commentaires d'un post LinkedIn spécifique.
+      Utiliser uniquement sur les posts des 45 derniers jours avec commentsCount &gt; 0.
+      Maximum 3 posts analysés par prospect.
+    method: POST
+    path: /collect/linkedin/comments
+    parameters:
+      - name: postUrl
+        in: body
+        type: string
+        required: true
+        description: "URL du post LinkedIn"
+      - name: start
+        in: body
+        type: integer
+        required: false
+        default: 0
+        description: "Offset de pagination"
+      - name: count
+        in: body
+        type: integer
+        required: false
+        default: 50
+        description: "Nombre de commentaires (max 50)"
+    response:
+      description: "Liste de commentaires avec name, headline, profileUrl, commentText, timestamp"
+
+  # ── Vérification des crédits ────────────────────────────────────────────────
+  - name: get_credits
+    description: &gt;
+      Vérifie le solde de crédits BeReach disponibles.
+      Appeler en début de session pour s'assurer d'avoir assez de crédits.
+    method: GET
+    path: /me/credits
+    parameters: []
+    response:
+      description: "Solde de crédits disponibles et utilisés"
+
+  # ── Publication d'un post LinkedIn ──────────────────────────────────────────
+  - name: publish_post
+    description: &gt;
+      Publie un post sur LinkedIn.
+      Utiliser pour la stratégie de contenu B2B (skill linkedin-content-publisher).
+    method: POST
+    path: /publish/linkedin/post
+    parameters:
+      - name: text
+        in: body
+        type: string
+        required: true
+        description: "Contenu du post LinkedIn (texte, hashtags)"
+      - name: visibility
+        in: body
+        type: string
+        required: false
+        default: "PUBLIC"
+        description: "Visibilité : PUBLIC | CONNECTIONS"
+    response:
+      description: "Confirmation de publication avec postUrl"
+</code></pre>
